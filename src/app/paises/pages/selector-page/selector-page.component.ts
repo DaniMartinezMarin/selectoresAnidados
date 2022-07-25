@@ -19,9 +19,13 @@ export class SelectorPageComponent implements OnInit {
     frontera  : [ '', Validators.required ]
   });
 
+  //  Selectores
   continentes: string[] = [];
   paises: PaisSmall[] = [];
   paisesFronterizos: PaisInterface[] = [];
+
+  // UI
+  cargando: boolean = false;
 
   constructor(
     private fb: FormBuilder,
@@ -35,11 +39,15 @@ export class SelectorPageComponent implements OnInit {
     //Cuando cambia el continente
     this.miFormulario.get('continente')?.valueChanges
     .pipe(
-      tap( () => this.miFormulario.get('pais')?.reset('') )
+      tap( () => {
+        this.miFormulario.get('pais')?.reset('');
+        this.cargando = true;
+      })
       ,switchMap( continente => this.paisesService.getPaisesPorContinente( continente ) )
     )
     .subscribe( (paises: PaisSmall[]) => {
       this.paises = paises;
+      this.cargando = false;
     });
 
     //Cuando cambia el pais
@@ -48,11 +56,15 @@ export class SelectorPageComponent implements OnInit {
         tap( () => {
           this.paisesFronterizos = [];
           this.miFormulario.get('frontera')?.reset('');
+          this.cargando = true;
         })
         ,switchMap( (codigoPais) => this.paisesService.getPaisPorCodigo( codigoPais ) )
       )
       .subscribe(
-        ( pais: PaisInterface | null ) => this.setFronteras(pais?.borders || [])
+        ( pais: PaisInterface | null ) => {
+          this.setFronteras(pais?.borders || []);
+          this.cargando = false;
+        }
       )
   }
 
@@ -65,7 +77,7 @@ export class SelectorPageComponent implements OnInit {
             this.paisesFronterizos.push(pais);
         }
       )
-    } )
+    })
   }
 
   guardar(): void {
