@@ -35,6 +35,21 @@
     </div>
   </div>
 
+  <!-- Paises fronterizos -->
+  <div class="row mb-3" *ngIf="paisesFronterizos.length > 0">
+    <div class="col">
+      <label class="form-label">Fronteras:</label>
+      <select class="form-control"
+              formControlName="frontera">
+
+        <option value=""> -- Seleccione País fronterizo --</option>
+        <option *ngFor="let paisFronterizo of paisesFronterizos"
+                [value]="paisFronterizo.alpha3Code"> {{paisFronterizo.name}} </option>
+
+      </select>
+    </div>
+  </div>
+
   <div class="row">
     <div class="col">
       <button class="btn btn-primary float-end"

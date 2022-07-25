@@ -1,8 +1,10 @@
-import { ThisReceiver } from '@angular/compiler';
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { PaisesInterface } from '../../interfaces/paises-interface';
 import { PaisesService } from '../../services/paises.service';
+
+import { switchMap, tap } from 'rxjs/operators'
+import { PaisInterface, PaisSmall } from '../../interfaces/pais-interface';
+import { of } from 'rxjs';
 
 @Component({
   selector: 'app-selector-page',
@@ -13,11 +15,13 @@ export class SelectorPageComponent implements OnInit {
 
   miFormulario: FormGroup = this.fb.group({
     continente: [ '', Validators.required ],
-    pais: [ '', Validators.required ],
+    pais      : [ '', Validators.required ],
+    frontera  : [ '', Validators.required ]
   });
 
   continentes: string[] = [];
-  paises: PaisesInterface[] = [];
+  paises: PaisSmall[] = [];
+  paisesFronterizos: PaisInterface[] = [];
 
   constructor(
     private fb: FormBuilder,
@@ -28,17 +32,40 @@ export class SelectorPageComponent implements OnInit {
 
     this.continentes = this.paisesService.continentes;
 
-    this.miFormulario.get('continente')?.valueChanges.subscribe(
-      (continente: string) => {
-        if(continente === '') {
-          this.paises = [];
-          return;
-        }
-        this.paisesService.getPaisesPorContinente(continente).subscribe(
-          (paises: PaisesInterface[]) => this.paises = paises
-        )
-      }
+    //Cuando cambia el continente
+    this.miFormulario.get('continente')?.valueChanges
+    .pipe(
+      tap( () => this.miFormulario.get('pais')?.reset('') )
+      ,switchMap( continente => this.paisesService.getPaisesPorContinente( continente ) )
     )
+    .subscribe( (paises: PaisSmall[]) => {
+      this.paises = paises;
+    });
+
+    //Cuando cambia el pais
+    this.miFormulario.get('pais')?.valueChanges
+      .pipe(
+        tap( () => {
+          this.paisesFronterizos = [];
+          this.miFormulario.get('frontera')?.reset('');
+        })
+        ,switchMap( (codigoPais) => this.paisesService.getPaisPorCodigo( codigoPais ) )
+      )
+      .subscribe(
+        ( pais: PaisInterface | null ) => this.setFronteras(pais?.borders || [])
+      )
+  }
+
+  setFronteras( codigosPaises: string[] ) {
+
+    codigosPaises.forEach( codigo => {
+      this.paisesService.getPaisPorCodigo(codigo).subscribe(
+        (pais: PaisInterface | null) => {
+          if(pais != null)
+            this.paisesFronterizos.push(pais);
+        }
+      )
+    } )
   }
 
   guardar(): void {
